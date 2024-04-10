@@ -11,11 +11,13 @@ namespace exchange_rates
     public partial class MainPage : ContentPage
     {
         private Label GoldInfo;
+        public GoldInfoModel GlobalGoldData;
 
         public MainPage()
         {
             InitializeComponent();
             LoadGoldInfo();
+            SetEntryProperties();
         }
 
         private async void LoadGoldInfo()
@@ -44,9 +46,11 @@ namespace exchange_rates
 
                     var latestGoldPrice = goldInfoList.FirstOrDefault();
 
+                    GlobalGoldData = latestGoldPrice;
+
                     GoldInfo = new Label
                     {
-                        Text = latestGoldPrice.Price.ToString(),
+                        Text = $"Gold price: {latestGoldPrice.Price} per gram",
                         FontSize = 18,
                         TextColor = Colors.White
                     };
@@ -63,6 +67,7 @@ namespace exchange_rates
                 await DisplayAlert("Error", ex.Message, "OK");
             }
         }
+
         public class GoldInfoModel
         {
             [JsonPropertyName("data")]
@@ -70,6 +75,46 @@ namespace exchange_rates
 
             [JsonPropertyName("cena")]
             public double Price { get; set; }
+        }
+        
+        // signs that can be used in entry
+        private bool LegalSign(char ch)
+        {
+            char[] legalSigns = {
+                ',', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'
+            };
+
+            return Array.IndexOf(legalSigns, ch) != -1;
+        }
+
+        private void SetEntryProperties()
+        {
+            entry.Focus();
+            entry.IsTextPredictionEnabled = false;
+
+            entry.TextChanged += (sender, args) =>
+            {
+                string newText = args.NewTextValue;
+                string filteredText = "";
+
+                foreach (char sign in newText)
+                {
+                    if (LegalSign(sign))
+                    {
+                        // add number format logic here e.g. 50000 -> 50 000
+
+                        filteredText += sign;
+                    }
+                }
+                entry.Text = filteredText;
+            };
+        }
+
+        private void BtnSubmitClicked(object sender, EventArgs e)
+        {
+            double money = Convert.ToDouble(entry.Text);
+
+            goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
         }
     }
 }

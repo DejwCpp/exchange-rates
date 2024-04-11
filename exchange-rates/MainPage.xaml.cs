@@ -16,16 +16,16 @@ namespace exchange_rates
         public MainPage()
         {
             InitializeComponent();
-            LoadGoldInfo();
+            LoadAPIInfo();
             SetEntryProperties();
         }
 
-        private async void LoadGoldInfo()
+        private async void LoadAPIInfo()
         {
-            await GetGoldInfo();
+            await GetAPIInfo();
         }
 
-        async Task GetGoldInfo()
+        async Task GetAPIInfo()
         {
             try
             {
@@ -33,14 +33,16 @@ namespace exchange_rates
                 using var client = new HttpClient();
 
                 string goldPriceURL = "http://api.nbp.pl/api/cenyzlota";
+                string ratesPriceURL = "http://api.nbp.pl/api/exchangerates/tables/a";
 
                 // GET request to the API
-                HttpResponseMessage response = await client.GetAsync(goldPriceURL);
+                HttpResponseMessage goldResponse = await client.GetAsync(goldPriceURL);
+                HttpResponseMessage ratesResponse = await client.GetAsync(ratesPriceURL);
 
-                // check if status code is 200 OK
-                if (response.IsSuccessStatusCode)
+                // check if status code is 200 OK for gold
+                if (goldResponse.IsSuccessStatusCode)
                 {
-                    string responseBody = await response.Content.ReadAsStringAsync();
+                    string responseBody = await goldResponse.Content.ReadAsStringAsync();
 
                     var goldInfoList = JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);
 
@@ -59,7 +61,23 @@ namespace exchange_rates
                 }
                 else
                 {
-                    await DisplayAlert("Data retrieval error", $"Error message: {response.StatusCode}", "OK");
+                    await DisplayAlert("Data retrieval error", $"Error message: {goldResponse.StatusCode}", "OK");
+                }
+
+                // check if status code is 200 OK for rates
+                if (ratesResponse.IsSuccessStatusCode)
+                {
+                    string responseBody = await ratesResponse.Content.ReadAsStringAsync();
+
+                    List<ExchangeRatesTable> exchangeRates = JsonSerializer.Deserialize<List<ExchangeRatesTable>>(responseBody);
+
+                    foreach (var table in exchangeRates)
+                    {
+                        foreach (var rate in table.Rates)
+                        {
+                            await DisplayAlert(rate.Currency, rate.Mid.ToString(), "OK");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -70,11 +88,26 @@ namespace exchange_rates
 
         public class GoldInfoModel
         {
-            [JsonPropertyName("data")]
+            [JsonPropertyName ("data")]
             public string Date { get; set; }
 
-            [JsonPropertyName("cena")]
+            [JsonPropertyName ("cena")]
             public double Price { get; set; }
+        }
+
+        public class ExchangeRatesTable
+        {
+            public string Table {  get; set; }
+            public string No { get; set; }
+            public DateTime EffectiveDate {  get; set; }
+            public List<Rate> Rates { get; set; }
+        }
+
+        public class Rate
+        {
+            public string Currency { get; set; }
+            public string Code { get; set; }
+            public double Mid {  get; set; }
         }
         
         // signs that can be used in entry
@@ -107,14 +140,33 @@ namespace exchange_rates
                     }
                 }
                 entry.Text = filteredText;
+                Changed();
             };
         }
 
         private void BtnSubmitClicked(object sender, EventArgs e)
         {
-            double money = Convert.ToDouble(entry.Text);
+            if (entry.Text.Length > 0)
+            {
+                double money = Convert.ToDouble(entry.Text);
 
-            goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
+                goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
+            }
+        }
+
+        private void Changed()
+        {
+            if (entry.Text.Length > 0)
+            {
+                double money = Convert.ToDouble(entry.Text);
+
+                goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
+            }
+        }
+
+        private void btnSubmit_Focused(object sender, FocusEventArgs e)
+        {
+
         }
     }
 }

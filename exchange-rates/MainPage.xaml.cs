@@ -69,15 +69,11 @@ namespace exchange_rates
                 {
                     string responseBody = await ratesResponse.Content.ReadAsStringAsync();
 
-                    List<ExchangeRatesTable> exchangeRates = JsonSerializer.Deserialize<List<ExchangeRatesTable>>(responseBody);
+                    var ratesInfoList = JsonSerializer.Deserialize<List<Rate>>(responseBody);
 
-                    foreach (var table in exchangeRates)
-                    {
-                        foreach (var rate in table.Rates)
-                        {
-                            await DisplayAlert(rate.Currency, rate.Mid.ToString(), "OK");
-                        }
-                    }
+                    var latestRates = ratesInfoList.FirstOrDefault();
+
+                    await DisplayAlert("title", latestRates.Currency, "OK");
                 }
             }
             catch (Exception ex)
@@ -109,7 +105,43 @@ namespace exchange_rates
             public string Code { get; set; }
             public double Mid {  get; set; }
         }
-        
+
+        private void SetEntryProperties()
+        {
+            entry.Focus();
+            entry.IsTextPredictionEnabled = false;
+
+            entry.TextChanged += EntryTextChanged;
+        }
+
+        private void EntryTextChanged(object sender, TextChangedEventArgs args)
+        {
+            string newText = args.NewTextValue;
+            string filteredText = "";
+
+            foreach (char sign in newText)
+            {
+                if (LegalSign(sign))
+                {
+                    // Add number format logic here e.g. 50000 -> 50 000
+                    filteredText += sign;
+                }
+            }
+            entry.Text = filteredText;
+
+            if (!string.IsNullOrEmpty(entry.Text))
+            {
+                if (double.TryParse(entry.Text, out double money))
+                {
+                    goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
+                }
+            }
+            else
+            {
+                goldAmount.Text = "You can buy: 0 grams of gold";
+            }
+        }
+
         // signs that can be used in entry
         private bool LegalSign(char ch)
         {
@@ -118,55 +150,6 @@ namespace exchange_rates
             };
 
             return Array.IndexOf(legalSigns, ch) != -1;
-        }
-
-        private void SetEntryProperties()
-        {
-            entry.Focus();
-            entry.IsTextPredictionEnabled = false;
-
-            entry.TextChanged += (sender, args) =>
-            {
-                string newText = args.NewTextValue;
-                string filteredText = "";
-
-                foreach (char sign in newText)
-                {
-                    if (LegalSign(sign))
-                    {
-                        // add number format logic here e.g. 50000 -> 50 000
-
-                        filteredText += sign;
-                    }
-                }
-                entry.Text = filteredText;
-                Changed();
-            };
-        }
-
-        private void BtnSubmitClicked(object sender, EventArgs e)
-        {
-            if (entry.Text.Length > 0)
-            {
-                double money = Convert.ToDouble(entry.Text);
-
-                goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
-            }
-        }
-
-        private void Changed()
-        {
-            if (entry.Text.Length > 0)
-            {
-                double money = Convert.ToDouble(entry.Text);
-
-                goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
-            }
-        }
-
-        private void btnSubmit_Focused(object sender, FocusEventArgs e)
-        {
-
         }
     }
 }

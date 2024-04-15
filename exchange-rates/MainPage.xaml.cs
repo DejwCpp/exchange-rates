@@ -4,7 +4,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Maui.Controls;
+using Newtonsoft.Json;
 
 namespace exchange_rates
 {
@@ -44,7 +46,7 @@ namespace exchange_rates
                 {
                     string responseBody = await goldResponse.Content.ReadAsStringAsync();
 
-                    var goldInfoList = JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);
+                    var goldInfoList = System.Text.Json.JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);
 
                     var latestGoldPrice = goldInfoList.FirstOrDefault();
 
@@ -69,11 +71,16 @@ namespace exchange_rates
                 {
                     string responseBody = await ratesResponse.Content.ReadAsStringAsync();
 
-                    var ratesInfoList = JsonSerializer.Deserialize<List<Rate>>(responseBody);
+/*                  List<RootObject> data = Newtonsoft.Json.JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);*/
+                    List<RootObject> data = JsonConvert.DeserializeObject<List<RootObject>>(responseBody);
 
-                    var latestRates = ratesInfoList.FirstOrDefault();
-
-                    await DisplayAlert("title", latestRates.Currency, "OK");
+                    foreach (var item in data)
+                    {
+                        foreach (var rate in item.rates)
+                        {
+                            await DisplayAlert(rate.currency, rate.mid.ToString(), "OK");
+                        }
+                    }
                 }
             }
             catch (Exception ex)
@@ -91,19 +98,19 @@ namespace exchange_rates
             public double Price { get; set; }
         }
 
-        public class ExchangeRatesTable
-        {
-            public string Table {  get; set; }
-            public string No { get; set; }
-            public DateTime EffectiveDate {  get; set; }
-            public List<Rate> Rates { get; set; }
-        }
-
         public class Rate
         {
-            public string Currency { get; set; }
-            public string Code { get; set; }
-            public double Mid {  get; set; }
+            public string currency { get; set; }
+            public string code { get; set; }
+            public decimal mid { get; set; }
+        }
+
+        public class RootObject
+        {
+            public string table { get; set; }
+            public string no { get; set; }
+            public DateTime effectiveDate { get; set; }
+            public List<Rate> rates { get; set; }
         }
 
         private void SetEntryProperties()

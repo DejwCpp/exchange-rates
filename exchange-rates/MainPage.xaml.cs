@@ -13,7 +13,9 @@ namespace exchange_rates
     public partial class MainPage : ContentPage
     {
         private Label GoldInfo;
-        public GoldInfoModel GlobalGoldData;
+        private double GoldPrice;
+        private List<RootObject> RateData;
+        private double EntryValue;
 
         public MainPage()
         {
@@ -46,15 +48,13 @@ namespace exchange_rates
                 {
                     string responseBody = await goldResponse.Content.ReadAsStringAsync();
 
-                    var goldInfoList = System.Text.Json.JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);
+                    dynamic jsonObject = Newtonsoft.Json.JsonConvert.DeserializeObject(responseBody);
 
-                    var latestGoldPrice = goldInfoList.FirstOrDefault();
-
-                    GlobalGoldData = latestGoldPrice;
+                    GoldPrice = jsonObject[0].cena;
 
                     GoldInfo = new Label
                     {
-                        Text = $"Gold price: {latestGoldPrice.Price} per gram",
+                        Text = $"Gold price: {GoldPrice} per gram",
                         FontSize = 18,
                         TextColor = Colors.White
                     };
@@ -71,31 +71,19 @@ namespace exchange_rates
                 {
                     string responseBody = await ratesResponse.Content.ReadAsStringAsync();
 
-/*                  List<RootObject> data = Newtonsoft.Json.JsonSerializer.Deserialize<List<GoldInfoModel>>(responseBody);*/
-                    List<RootObject> data = JsonConvert.DeserializeObject<List<RootObject>>(responseBody);
+                    RateData = JsonConvert.DeserializeObject<List<RootObject>>(responseBody);
 
-                    foreach (var item in data)
-                    {
-                        foreach (var rate in item.rates)
-                        {
-                            await DisplayAlert(rate.currency, rate.mid.ToString(), "OK");
-                        }
-                    }
+                    CreateRateLabels(160);
+                }
+                else
+                {
+                    await DisplayAlert("Data retrieval error", $"Error message: {ratesResponse.StatusCode}", "OK");
                 }
             }
             catch (Exception ex)
             {
                 await DisplayAlert("Error", ex.Message, "OK");
             }
-        }
-
-        public class GoldInfoModel
-        {
-            [JsonPropertyName ("data")]
-            public string Date { get; set; }
-
-            [JsonPropertyName ("cena")]
-            public double Price { get; set; }
         }
 
         public class Rate
@@ -111,6 +99,28 @@ namespace exchange_rates
             public string no { get; set; }
             public DateTime effectiveDate { get; set; }
             public List<Rate> rates { get; set; }
+        }
+
+        private void CreateRateLabels(int marginTop)
+        {
+            foreach (var item in RateData)
+            {
+                foreach (var rate in item.rates)
+                {
+                    Label rateLabel = new Label
+                    {
+                        Text = $"{rate.code}: {rate.mid * Convert.ToInt32(EntryValue)}",
+                        FontSize = 18,
+                        TextColor = Colors.White,
+                        HorizontalOptions = LayoutOptions.Center,
+                        Margin = new Thickness(0, marginTop, 0, 0)
+                    };
+                    mainGrid.SetRow(rateLabel, 1);
+                    mainGrid.Children.Add(rateLabel);
+
+                    marginTop += 30;
+                }
+            }
         }
 
         private void SetEntryProperties()
@@ -138,14 +148,37 @@ namespace exchange_rates
 
             if (!string.IsNullOrEmpty(entry.Text))
             {
-                if (double.TryParse(entry.Text, out double money))
-                {
-                    goldAmount.Text = "You can buy: " + Math.Round(money / GlobalGoldData.Price, 2) + " grams of gold";
-                }
+                EntryValue = Convert.ToDouble(entry.Text);
+
+                goldAmount.Text = "You can buy: " + Math.Round(EntryValue / GoldPrice, 2) + " grams of gold";
+
+                RemoveMainGridLabels();
+                CreateRateLabels(160);
             }
             else
             {
                 goldAmount.Text = "You can buy: 0 grams of gold";
+
+                RemoveMainGridLabels();
+                EntryValue = 0;
+                CreateRateLabels(160);
+            }
+        }
+
+        private void RemoveMainGridLabels()
+        {
+            List<VisualElement> elementsToRemove = new List<VisualElement>();
+
+            foreach (VisualElement child in mainGrid.Children)
+            {
+                if (child != entry && child != entry_zl)
+                {
+                    elementsToRemove.Add(child);
+                }
+            }
+            foreach (VisualElement elementToRemove in elementsToRemove)
+            {
+                mainGrid.Children.Remove(elementToRemove);
             }
         }
 

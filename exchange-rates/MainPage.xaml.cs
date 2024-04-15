@@ -12,7 +12,7 @@ namespace exchange_rates
 {
     public partial class MainPage : ContentPage
     {
-        private Label GoldInfo;
+        private Label GoldLabel;
         private double GoldPrice;
         private List<RootObject> RateData;
         private double EntryValue;
@@ -22,6 +22,7 @@ namespace exchange_rates
             InitializeComponent();
             LoadAPIInfo();
             SetEntryProperties();
+            AddGoldLabel();
         }
 
         private async void LoadAPIInfo()
@@ -51,15 +52,6 @@ namespace exchange_rates
                     dynamic jsonObject = Newtonsoft.Json.JsonConvert.DeserializeObject(responseBody);
 
                     GoldPrice = jsonObject[0].cena;
-
-                    GoldInfo = new Label
-                    {
-                        Text = $"Gold price: {GoldPrice} per gram",
-                        FontSize = 18,
-                        TextColor = Colors.White
-                    };
-
-                    mainGrid.Children.Add(GoldInfo);
                 }
                 else
                 {
@@ -90,7 +82,7 @@ namespace exchange_rates
         {
             public string currency { get; set; }
             public string code { get; set; }
-            public decimal mid { get; set; }
+            public double mid { get; set; }
         }
 
         public class RootObject
@@ -107,15 +99,16 @@ namespace exchange_rates
             {
                 foreach (var rate in item.rates)
                 {
+                    double price = EntryValue / rate.mid;
+
                     Label rateLabel = new Label
                     {
-                        Text = $"{rate.code}: {rate.mid * Convert.ToInt32(EntryValue)}",
+                        Text = $"{rate.code}: {Math.Round(price, 2)}",
                         FontSize = 18,
                         TextColor = Colors.White,
                         HorizontalOptions = LayoutOptions.Center,
                         Margin = new Thickness(0, marginTop, 0, 0)
                     };
-                    mainGrid.SetRow(rateLabel, 1);
                     mainGrid.Children.Add(rateLabel);
 
                     marginTop += 30;
@@ -134,35 +127,33 @@ namespace exchange_rates
         private void EntryTextChanged(object sender, TextChangedEventArgs args)
         {
             string newText = args.NewTextValue;
-            string filteredText = "";
 
-            foreach (char sign in newText)
+            RemoveMainGridLabels();
+
+            if (entry.Text.Length > 0 )
             {
-                if (LegalSign(sign))
+                // if illegal sign entered - prevent from writing it
+                if (!LegalSign(newText[newText.Length - 1]))
                 {
-                    // Add number format logic here e.g. 50000 -> 50 000
-                    filteredText += sign;
+                    entry.Text = newText.Substring(0, newText.Length - 1);
+                    return;
                 }
-            }
-            entry.Text = filteredText;
 
-            if (!string.IsNullOrEmpty(entry.Text))
-            {
                 EntryValue = Convert.ToDouble(entry.Text);
 
-                goldAmount.Text = "You can buy: " + Math.Round(EntryValue / GoldPrice, 2) + " grams of gold";
+                AddGoldLabel();
+                GoldLabel.Text = "Gold: " + Math.Round(EntryValue / GoldPrice, 2) + " grams";
 
-                RemoveMainGridLabels();
                 CreateRateLabels(160);
-            }
-            else
-            {
-                goldAmount.Text = "You can buy: 0 grams of gold";
 
-                RemoveMainGridLabels();
-                EntryValue = 0;
-                CreateRateLabels(160);
+                return;
             }
+
+            AddGoldLabel();
+            GoldLabel.Text = "Gold: 0 grams";
+
+            EntryValue = 0;
+            CreateRateLabels(160);
         }
 
         private void RemoveMainGridLabels()
@@ -180,6 +171,18 @@ namespace exchange_rates
             {
                 mainGrid.Children.Remove(elementToRemove);
             }
+        }
+
+        private void AddGoldLabel()
+        {
+            GoldLabel = new Label
+            {
+                Text = "Gold: 0 grams",
+                FontSize = 24,
+                HorizontalOptions = LayoutOptions.Center,
+                Margin = new Thickness(0, 110, 0, 0)
+            };
+            mainGrid.Children.Add(GoldLabel);
         }
 
         // signs that can be used in entry

@@ -6,17 +6,11 @@
     <ScrollView>
 
         <Grid x:Name="mainGrid">
-            <Grid.RowDefinitions>
-                <RowDefinition/>
-                <RowDefinition/>
-            </Grid.RowDefinitions>
             
-            <Entry x:Name="entry" Grid.Row="0" FontSize="24" HorizontalTextAlignment="Center" VerticalOptions="Start" BackgroundColor="#FFFFFF"
+            <Entry x:Name="entry" FontSize="24" HorizontalTextAlignment="Center" VerticalOptions="Start" BackgroundColor="#FFFFFF"
                    TextColor="#000000" MaximumHeightRequest="50" MaximumWidthRequest="200" MaxLength="20" Margin="0,50,0,0"/>
 
-            <Label x:Name="entry_zl" Grid.Row="0" Text="zł" FontSize="32" VerticalOptions="Start" HorizontalOptions="Center" Margin="250,50,0,0"/>
-
-            <Label x:Name="goldAmount" Grid.Row="1" Text="You can buy: " FontSize="24" HorizontalOptions="Center" Margin="0,110,0,0"/>
+            <Label x:Name="entry_zl" Text="zł" FontSize="32" VerticalOptions="Start" HorizontalOptions="Center" Margin="250,50,0,0"/>
         </Grid>
 
     </ScrollView>

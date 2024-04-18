@@ -130,8 +130,35 @@ namespace exchange_rates
 
             RemoveMainGridLabels();
 
-            if (entry.Text.Length > 0 )
+            if (newText.Length > 0)
             {
+                // prevent from writing ',' as a first sign
+                if (newText[0] == ',')
+                {
+                    entry.Text = string.Empty;
+                    return;
+                }
+
+                // prevent from writing ",,"
+                if (newText.Length > 1)
+                {
+                    if (newText[newText.Length - 1] == ',' && newText[newText.Length - 2] == ',')
+                    {
+                        entry.Text = newText.Substring(0, newText.Length - 1);
+                        return;
+                    }
+                }
+
+                // prevent from writing more than 2 signs after ',' sign
+                if (newText.Length > 4)
+                {
+                    if (newText[newText.Length - 4] == ',')
+                    {
+                        entry.Text = newText.Substring(0, newText.Length - 1);
+                        return;
+                    }
+                }
+
                 // if illegal sign entered - prevent from writing it
                 if (!LegalSign(newText[newText.Length - 1]))
                 {
